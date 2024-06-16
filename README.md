@@ -49,7 +49,7 @@ httpServer.Update(port, maxConnections, basePathLocal, allowCrossOrigin, restart
 
 ### Screenshot of the Browser Serving Embedded Content
 ![Embedded Content](readme_img_embeddedcontent.png?raw=true "Embedded Content")
-![Browser 1](readme_img_browser1.png?raw=true "Browser 1")
+![Browser 1](readme_img_browser1.PNG?raw=true "Browser 1")
 ![Browser 2](readme_img_browser2.png?raw=true "Browser 2")
 ![Browser 3](readme_img_browser3.png?raw=true "Browser 3")
 
