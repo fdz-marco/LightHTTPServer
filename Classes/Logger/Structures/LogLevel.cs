@@ -1,14 +1,14 @@
 ﻿namespace glitcher.core
 {
-    /// <summary>(Enumerator) Log Level</summary>
+    /// <summary>
+    /// (Enumerator) Log Level
+    /// </summary>
     /// <remarks>
     /// Author: Marco Fernandez (marcofdz.com / glitcher.dev)<br/>
-    /// Last modified: 2024.06.15 - June 15, 2024
+    /// Last modified: 2024.06.17 - June 17, 2024
     /// </remarks>
     public enum LogLevel
     {
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
         Info = 0,
         Warning = 1,
         Error = 2,
@@ -16,7 +16,6 @@
         OnlyDebug = 4,
         None = 5,
         Success = 6
-
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
     }
+
 }

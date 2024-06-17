@@ -1,28 +1,27 @@
-﻿using glitcher.core.Utils;
-using System.Windows.Forms;
+﻿using System.Windows.Forms;
 
 namespace glitcher.core
 {
-    /// <summary>(Form) Log Viewer</summary>
+    /// <summary>
+    /// (Form) Log Viewer
+    /// </summary>
     /// <remarks>
     /// Author: Marco Fernandez (marcofdz.com / glitcher.dev)<br/>
-    /// Last modified: 2024.06.15 - June 15, 2024
+    /// Last modified: 2024.06.17 - June 17, 2024
     /// </remarks>
     public partial class LogViewer : Form
     {
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
-        #region Properties (Private / Public / Getters|Setters / Events)
+        #region Properties
 
         private static LogViewer? _instance = null;
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
         #region Constructor / Settings / Initialization Tasks
 
-        /// <summary>Class constructor.</summary>
+        /// <summary>
+        /// (Form) LogViewer
+        /// </summary>
         public LogViewer()
         {
             InitializeComponent();
@@ -30,7 +29,9 @@ namespace glitcher.core
             Logger.ChangeOccurred += Logger_ChangeOccurred; // Subscribe to changes on Logger
         }
 
-        /// <summary>Get Instance of Static Clase.</summary>
+        /// <summary>
+        /// Get Instance of Static Class
+        /// </summary>
         /// <returns>(Form) The instance of Form/Window</returns>
         public static LogViewer GetInstance()
         {
@@ -42,7 +43,9 @@ namespace glitcher.core
             return _instance;
         }
 
-        /// <summary>Initialization of the List View.</summary>
+        /// <summary>
+        /// Initialization of the List View
+        /// </summary>
         /// <returns>(void)</returns>
         private void InitListView()
         {
@@ -96,18 +99,18 @@ namespace glitcher.core
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+        #region Update List View
 
-        #region Methods (Update List View)
-
-        /// <summary>Update List View with Log Items.</summary>
+        /// <summary>
+        /// Update List View with Log Items
+        /// </summary>
         /// <returns>(void)</returns>
         public void RefreshContentListView()
         {
             lv_Log.CallMethod((ctrl) => ctrl.Items.Clear()); // SafeThread Call
-            List<Log> reversed = Logger.logList;
+            List<LogEntry> reversed = Logger.logList;
             reversed.Reverse();
-            foreach (Log item in reversed)
+            foreach (LogEntry item in reversed)
             {
                 ListViewItem logItem = CreateListViewItemFromLog(item);
                 lv_Log.CallMethod((ctrl, value) => ctrl.Items.Add(value), logItem); // SafeThread Call
@@ -115,10 +118,12 @@ namespace glitcher.core
             lv_Log.CallMethod((ctrl) => ctrl.Update()); // SafeThread Call
         }
 
-        /// <summary>Create a List View Item From a Log Item.</summary>
-        /// <param name="item">Log (Entry)</param>
+        /// <summary>
+        /// Create a List View Item From a Log Item
+        /// </summary>
+        /// <param name="item">Log Entry</param>
         /// <returns>(ListViewItem) List View Item that represent a Log Entry</returns>
-        private ListViewItem CreateListViewItemFromLog(Log item)
+        private ListViewItem CreateListViewItemFromLog(LogEntry item)
         {
             // Create ListView Item
             ListViewItem logItem = new ListViewItem();
@@ -143,7 +148,9 @@ namespace glitcher.core
             return logItem;
         }
 
-        /// <summary>In case the Logger Notify a change ocurred, execute some actions on Form/Window.</summary>
+        /// <summary>
+        /// In case the Logger Notify a change ocurred, execute some actions on Form/Window
+        /// </summary>
         /// <returns>(void)</returns>
         private async void Logger_ChangeOccurred(object? sender, LogEvent e)
         {
@@ -155,9 +162,9 @@ namespace glitcher.core
             }
             else if (e.eventType == "add")
             {
-                if (e.varValue != null)
+                if (e.variable != null)
                 {
-                    Log item = (Log)e.varValue;
+                    LogEntry item = (LogEntry)e.variable;
                     ListViewItem logItem = CreateListViewItemFromLog(item);
                     //lv_Log.Items.Insert(0, logItem); // Add at Top
                     //lvLog.Items.Add(logitem); // Add at Bottom
@@ -170,18 +177,20 @@ namespace glitcher.core
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+        #region UI Actions
 
-        #region Methods (UI Action)
-
-        /// <summary>UI Action: Click on Clear All (Log).</summary>
+        /// <summary>
+        /// UI Action: Click on Clear All (Log)
+        /// </summary>
         /// <returns>(void)</returns>
         private void btn_ClearAll_Click(object sender, EventArgs e)
         {
             Logger.ClearAll();
         }
 
-        /// <summary>UI Action: Click on Copy (to Clipboard).</summary>
+        /// <summary>
+        /// UI Action: Click on Copy (to Clipboard)
+        /// </summary>
         /// <returns>(void)</returns>
         private void btn_Copy_Click(object sender, EventArgs e)
         {
@@ -200,6 +209,5 @@ namespace glitcher.core
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
     }
 }

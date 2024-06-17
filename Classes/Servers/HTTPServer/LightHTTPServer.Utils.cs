@@ -1,86 +1,27 @@
 ﻿using System.Net;
 using System.Text;
 using System.Reflection;
-using System.Net.Sockets;
 using System.Collections.Specialized;
-using System.Net.NetworkInformation;
 
 namespace glitcher.core.Servers
 {
-    /// <summary>(Class) Light HTTP Server Utilities</summary>
+    /// <summary>
+    /// (Class) Light HTTP Server Utilities
+    /// </summary>
     /// <remarks>
     /// Author: Marco Fernandez (marcofdz.com / glitcher.dev)<br/>
-    /// Last modified: 2024.06.16 - June 16, 2024
+    /// Last modified: 2024.06.17 - June 17, 2024
     /// </remarks>
     public class LightHTTPServerUtils
     {
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
-        /// <summary>Get Local IPs</summary>
-        /// <returns>(String[]) List of string with the IPs</returns>
-        public static String[] GetAllLocalIPv4()
-        {
-            List<string>? ipAddrList = new List<string>();
-            foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
-            {
-                if (item.OperationalStatus == OperationalStatus.Up)
-                {
-                    foreach (UnicastIPAddressInformation ip in item.GetIPProperties().UnicastAddresses)
-                    {
-                        if (ip.Address.AddressFamily == AddressFamily.InterNetwork)
-                        {
-                            ipAddrList.Add(ip.Address.ToString());
-                        }
-                    }
-                }
-            }
+        #region Request Parameters | Get File Paths Local/Embebbed
 
-            if (ipAddrList.FindIndex(x => x == "127.0.0.1") < 0)
-                ipAddrList.Add("127.0.0.1");
-            if (ipAddrList.FindIndex(x => x == "localhost") < 0)
-                ipAddrList.Add("localhost");
-            return ipAddrList.ToArray();
-        }
-
-        /// <summary>Get Mime Type by file extension.</summary>
-        /// <param name="extension">File Extension</param>
-        /// <returns>(string) Mime Type</returns>
-        private string GetMimeType(string extension)
-        {
-            switch (extension.ToLower())
-            {
-                case ".html": return "text/html";
-                case ".htm": return "text/html";
-                case ".css": return "text/css";
-                case ".js": return "application/javascript";
-                case ".jpg": return "image/jpeg";
-                case ".jpeg": return "image/jpeg";
-                case ".png": return "image/png";
-                case ".gif": return "image/gif";
-                case ".json": return "application/json";
-                case ".txt": return "text/plain";
-                case ".xml": return "application/xml";
-                case ".csv": return "text/csv";
-                case ".zip": return "application/zip";
-                case ".mp3": return "video/mpeg";
-                case ".mp4": return "video/mp4";
-                case ".pdf": return "application/pdf";
-                case ".php": return "application/x-httpd-php";
-                case ".svg": return "image/svg+xml";
-                case ".ttf": return "font/ttf";
-                case ".woff": return "font/woff";
-                case ".woff2": return "font/woff2";
-                case ".wasm": return "application/wasm";
-                case "": return "text/html";
-                default: return "application/octet-stream";
-            }
-        }
-
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
-        /// <summary>Generates a collection of the request's parameters from a HTTP Request.</summary>
+        /// <summary>
+        /// Generates a collection of the request parameters from a HTTP Request.
+        /// </summary>
         /// <param name="request">HTTP Request received.</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(NameValueCollection) Collection of the request's parameters</returns>
         protected NameValueCollection GetRequestParams(HttpListenerRequest request, string requestUID = "Unidentified")
         {
@@ -124,12 +65,12 @@ namespace glitcher.core.Servers
             return queryParams;
         }
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
-        /// <summary>Get a Local File Path from Requested Path (Note: Relative to Application directory).</summary>
+        /// <summary>
+        /// Get a Local File Path from Requested Path (Note: Relative to Application directory).
+        /// </summary>
         /// <param name="requestedPath">Requested Path.</param>
         /// <param name="basePathLocal">The base path to find the local file (Note: Relative to Application directory).</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(string) Local File Path</returns>
         protected string? GetLocalFilePath(string requestedPath, string basePathLocal, string requestUID = "Unidentified")
         {
@@ -149,10 +90,12 @@ namespace glitcher.core.Servers
             return null;
         }
 
-        /// <summary>Get a Embedded File Path from Requested Path (Note: Relative to root folder of project).</summary>
+        /// <summary>
+        /// Get a Embedded File Path from Requested Path (Note: Relative to root folder of project).
+        /// </summary>
         /// <param name="requestedPath">Requested Path.</param>
         /// <param name="basePathEmbedded">The base path to find the embedded resource file (Note: Relative to root folder of project).</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(string) Embedded File Path</returns>
         protected string? GetEmbeddedFilePath(string requestedPath, string basePathEmbedded, string requestUID = "Unidentified")
         {
@@ -179,10 +122,12 @@ namespace glitcher.core.Servers
             return null;
         }
 
-        /// <summary>Get a Default Local File Path from Requested Path (Note: Relative to Application directory).</summary>
+        /// <summary>
+        /// Get a Default Local File Path from Requested Path (Note: Relative to Application directory).
+        /// </summary>
         /// <param name="requestedPath">Requested Path.</param>
         /// <param name="basePathLocal">The base path to find the local file (Note: Relative to Application directory).</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(string) Local Default File Path</returns>
         protected string? GetLocalDefaultFilePath(string requestedPath, string basePathLocal, string requestUID = "Unidentified")
         {
@@ -209,10 +154,12 @@ namespace glitcher.core.Servers
             return null;
         }
 
-        /// <summary>Get a Defalt Embedded File Path from Requested Path (Note: Relative to root folder of project).</summary>
+        /// <summary>
+        /// Get a Defalt Embedded File Path from Requested Path (Note: Relative to root folder of project).
+        /// </summary>
         /// <param name="requestedPath">Requested Path.</param>
         /// <param name="basePathEmbedded">The base path to find the embedded resource file (Note: Relative to root folder of project).</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(string) Embedded Default File Path</returns>
         protected string? GetEmbeddedDefaultFilePath(string requestedPath, string basePathEmbedded, string requestUID = "Unidentified")
         {
@@ -239,12 +186,16 @@ namespace glitcher.core.Servers
             return null;
         }
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+        #endregion
 
-        /// <summary>Serve a Local File to the Response (Note: Relative to Application Directory).</summary>
+        #region Serve Response
+
+        /// <summary>
+        /// Serve a Local File to the Response (Note: Relative to Application Directory).
+        /// </summary>
         /// <param name="response">HTTP Response</param>
         /// <param name="localFilePath">Local File Path (Note: Relative to App Directory).</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(bool *async) True if is served correctly.</returns>
         protected async Task<bool> ServeResponseLocalFile(HttpListenerResponse response, string localFilePath, string requestUID = "Unidentified")
         {
@@ -255,7 +206,7 @@ namespace glitcher.core.Servers
                 byte[] fileBytes = await File.ReadAllBytesAsync(localFilePath);
                 // Add to HTTP Response
                 response.StatusCode = (int)HttpStatusCode.OK;
-                response.ContentType = GetMimeType(Path.GetExtension(localFilePath));
+                response.ContentType = Utils.GetMimeType(Path.GetExtension(localFilePath));
                 response.AddHeader("Date", DateTime.Now.ToString("r"));
                 response.AddHeader("Last-Modified", File.GetLastWriteTime(localFilePath).ToString("r"));
                 response.AddHeader("Cache-Control", "no-cache");
@@ -271,10 +222,12 @@ namespace glitcher.core.Servers
             }
         }
 
-        /// <summary>Serve a Embedded File to the Response (Note: Relative to root folder of project).</summary>
+        /// <summary>
+        /// Serve a Embedded File to the Response (Note: Relative to root folder of project).
+        /// </summary>
         /// <param name="response">HTTP Response</param>
         /// <param name="embeddedFilePath">Embedded File Path (Note: Relative to root folder of project)</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(bool *async) True if is served correctly.</returns>
         protected async Task<bool> ServeReponseEmbeddedFile(HttpListenerResponse response, string embeddedFilePath, string requestUID = "Unidentified")
         {
@@ -290,7 +243,7 @@ namespace glitcher.core.Servers
                 filesBytes = memoryStream.ToArray();
                 // Add to HTTP Response
                 response.StatusCode = (int)HttpStatusCode.OK;
-                response.ContentType = GetMimeType(Path.GetExtension(embeddedFilePath));
+                response.ContentType = Utils.GetMimeType(Path.GetExtension(embeddedFilePath));
                 response.AddHeader("Date", DateTime.Now.ToString("r"));
                 //response.AddHeader("Last-Modified", System.IO.File.GetLastWriteTime(requestedPath).ToString("r"));
                 response.AddHeader("Cache-Control", "no-cache");
@@ -306,12 +259,14 @@ namespace glitcher.core.Servers
             }
         }
 
-        /// <summary>Serve Custom Content to the Response.</summary>
+        /// <summary>
+        /// Serve Custom Content to the Response.
+        /// </summary>
         /// <param name="response">HTTP Response</param>
         /// <param name="requestedPath">Requested Path</param>
         /// <param name="content">Content to be in the response.</param>
         /// <param name="mimeType">Mime Type</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(bool *async) True if is served correctly.</returns>
         protected async Task<bool> ServeResponseCustomContent(HttpListenerResponse response, string requestedPath, string content, string mimeType = "text/html", string requestUID = "Unidentified")
         {
@@ -338,13 +293,17 @@ namespace glitcher.core.Servers
             }
         }
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+        #endregion
 
-        /// <summary>Get the Local File Path and Serve Reponse.</summary>
+        #region Get File Paths and Serve Local/Embebbed
+
+        /// <summary>
+        /// Get the Local File Path and Serve Reponse.
+        /// </summary>
         /// <param name="requestedPath">Requested Path</param>
         /// <param name="basePathLocal">The base path to find the local file (Note: Relative to Application directory).</param>
         /// <param name="response">HTTP Response</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(bool *async) True if is served correctly.</returns>
         protected async Task<bool> GetPathAndServeLocalFile(string requestedPath, string basePathLocal, HttpListenerResponse response, string requestUID = "Unidentified")
         {
@@ -361,11 +320,13 @@ namespace glitcher.core.Servers
             return served;
         }
 
-        /// <summary>Get the Embedded File and Serve Reponse.</summary>
+        /// <summary>
+        /// Get the Embedded File and Serve Reponse.
+        /// </summary>
         /// <param name="requestedPath">Requested Path</param>
         /// <param name="basePathEmbedded">The base path to find the embedded resource file (Note: Relative to root folder of project).</param>
         /// <param name="response">HTTP Response</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(bool *async) True if is served correctly.</returns>
         protected async Task<bool> GetPathAndServeEmbeddedFile(string requestedPath, string basePathEmbedded, HttpListenerResponse response, string requestUID = "Unidentified")
         {
@@ -382,14 +343,18 @@ namespace glitcher.core.Servers
             return served;
         }
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+        #endregion
 
-        /// <summary>Serve Error 404 - Not Found.</summary>
+        #region Serve Errors
+
+        /// <summary>
+        /// Serve Error 404 - Not Found.
+        /// </summary>
         /// <param name="requestedPath">Requested Path</param>
         /// <param name="basePathEmbedded">The base path to find the embedded resource file (Note: Relative to root folder of project).</param>
         /// <param name="basePathLocal">The base path to find the local file (Note: Relative to Application directory).</param>/// 
         /// <param name="response">HTTP Response</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(bool *async) True if is served correctly.</returns>
         protected async Task<bool> ServeReponseErrorNotFound(string requestedPath, string basePathEmbedded, string basePathLocal, HttpListenerResponse response, string requestUID = "Unidentified")
         {
@@ -420,12 +385,14 @@ namespace glitcher.core.Servers
             }
         }
 
-        /// <summary>Serve Error 505 - Server Error.</summary>
+        /// <summary>
+        /// Serve Error 505 - Server Error.
+        /// </summary>
         /// <param name="requestedPath">Requested Path</param>
         /// <param name="basePathEmbedded">The base path to find the embedded resource file (Note: Relative to root folder of project).</param>
         /// <param name="basePathLocal">The base path to find the local file (Note: Relative to Application directory).</param>/// 
         /// <param name="response">HTTP Response</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all task triggered by same request.</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(bool *async) True if is served correctly.</returns>
         protected async Task<bool> ServeReponseErrorServer(string requestedPath, string basePathEmbedded, string basePathLocal, HttpListenerResponse response, string requestUID = "Unidentified")
         {
@@ -456,7 +423,6 @@ namespace glitcher.core.Servers
             }
         }
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
+        #endregion
     }
 }

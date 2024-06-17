@@ -1,4 +1,4 @@
-﻿namespace HTTPServer
+﻿namespace LightHTTPServerTester
 {
     partial class Main
     {
@@ -212,6 +212,7 @@
             Controls.Add(btn_ShowLogger);
             FormBorderStyle = FormBorderStyle.FixedSingle;
             Name = "Main";
+            StartPosition = FormStartPosition.CenterScreen;
             Text = "Light HTTP Server Tester";
             ResumeLayout(false);
             PerformLayout();

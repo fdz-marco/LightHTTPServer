@@ -1,43 +1,40 @@
 ﻿namespace glitcher.core
 {
-    /// <summary>(Class: Static~Global) Simple Logger</summary>
+    /// <summary>
+    /// (Class: Static~Global) Simple Logger<br/>
+    /// </summary>
     /// <remarks>
     /// Author: Marco Fernandez (marcofdz.com / glitcher.dev)<br/>
-    /// Last modified: 2024.06.15 - June 15, 2024
+    /// Last modified: 2024.06.17 - June 17, 2024
     /// </remarks>
     public static class Logger
     {
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+        #region Properties
 
-        #region Properties (Private / Public / Getters|Setters / Events)
-
-        public static List<Log> logList { get; set; } = new List<Log>();
+        public static List<LogEntry> logList { get; set; } = new List<LogEntry>();
         public static bool debug { get; set; } = true;
         public static bool disabled { get; set; } = false;
         public static bool includeCaller { get; set; } = true;
-
         public static event EventHandler<LogEvent>? ChangeOccurred;
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
         #region Constructor / Settings / Initialization Tasks
 
-        /// <summary>Class constructor.</summary>
+        /// <summary>
+        /// Logger Events
+        /// </summary>
         static Logger()
         {
             if (logList == null)
             {
-                logList = new List<Log>();
+                logList = new List<LogEntry>();
             }
         }
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
-        #region Methods
+        #region Log Actions
 
         /// <summary> 
         /// Add Entry to Log.<br/>
@@ -56,7 +53,7 @@
             if (disabled) 
                 return;
 
-            Log log = new Log();
+            LogEntry log = new LogEntry();
             log.DateTime = DateTime.Now;
             log.LogLevel = level; 
             log.Group = group;
@@ -77,14 +74,18 @@
             NotifyChange("add", log);
         }
 
-        /// <summary>Get a JSON of all logs.</summary>
+        /// <summary>
+        /// Get a JSON of all logs
+        /// </summary>
         /// <returns>(string) JSON with alll the logs.</returns>
         public static string GetAllJSON()
         {
             return System.Text.Json.JsonSerializer.Serialize(logList);
         }
 
-        /// <summary>Clear all logs.</summary>
+        /// <summary>
+        /// Clear all logs
+        /// </summary>
         /// <returns>(void)</returns>
         public static void ClearAll()
         {
@@ -92,7 +93,9 @@
             NotifyChange("clear");
         }
 
-        /// <summary>Alias to write a message on console.</summary>
+        /// <summary>
+        /// Alias to write a message on console
+        /// </summary>
         /// <param name="message">Message to write</param>
         /// <returns>(void)</returns>
         public static void _d(string message)
@@ -105,22 +108,23 @@
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
         #region Notifiers / Event Handlers
 
-        /// <summary>Notify a change on Log.</summary>
+        /// <summary>
+        /// Notify a change on Log
+        /// </summary>
+        /// <param name="eventType">Event Type</param>
+        /// <param name="variable">Variable to Notify</param>
         /// <returns>(void)</returns>
-        private static void NotifyChange(string eventType, dynamic? varValue = null)
+        private static void NotifyChange(string eventType, dynamic? variable = null)
         {
             if (ChangeOccurred != null)
             {
-                ChangeOccurred.Invoke(typeof(Logger), new LogEvent(eventType, varValue));
+                ChangeOccurred.Invoke(typeof(Logger), new LogEvent(eventType, variable));
             }
         }
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
     }
 }

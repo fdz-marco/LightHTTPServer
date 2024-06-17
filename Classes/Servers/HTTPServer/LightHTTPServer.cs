@@ -1,14 +1,12 @@
 ﻿using System.Net;
 using System.Collections.Specialized;
-using glitcher.core.Utils;
 
 namespace glitcher.core.Servers
 {
     /// <summary>
-    /// (Class) Light HTTP Server
-    /// <br/>
+    /// (Class) Light HTTP Server <br/>
     /// Class to execute a HTTP Server on local.<br/>
-    /// The class allow to serve local files, embededd resources, and custom responses.<br/><br/>
+    /// The class allows to serve local files, embededd resources, and custom responses.<br/><br/>
     /// **Important**<br/>
     /// To add complete project folder as embedded resources, 
     /// please add the folder as embedded resource in the *.csproj definition:<br/>
@@ -16,47 +14,43 @@ namespace glitcher.core.Servers
     /// </summary>
     /// <remarks>
     /// Author: Marco Fernandez (marcofdz.com / glitcher.dev)<br/>
-    /// Last modified: 2024.06.16 - June 16, 2024
+    /// Last modified: 2024.06.17 - June 17, 2024
     /// </remarks>
     public class LightHTTPServer : LightHTTPServerUtils
     {
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
-        #region Properties (Private / Public / Getters|Setters / Events)
+        #region Properties
 
         private HttpListener? _httpServerListener = null;
-        private Dictionary<string, Route<string>> _RoutesList = new Dictionary<string, Route<string>>();
-        private Dictionary<string, Route<Task<string>>> _RoutesListAsync = new Dictionary<string, Route<Task<string>>>();
-        private List<string>? _endpoints { get => new List<string>(GetAllLocalIPv4().Select(x => $"http://{x}:{this.port}/")); }
+        private Dictionary<string, LightHTTPServerRoute<string>> _RoutesList = new Dictionary<string, LightHTTPServerRoute<string>>();
+        private Dictionary<string, LightHTTPServerRoute<Task<string>>> _RoutesListAsync = new Dictionary<string, LightHTTPServerRoute<Task<string>>>();
+        private List<string>? _endpoints { get => new List<string>(Utils.GetAllLocalIPv4().Select(x => $"http://{x}:{this.port}/")); }
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
-        public CancellationTokenSource? cToken { get; set; } = null;
         public int port { get; set; } = 8080;
         public int maxConnections { get; set; } = 10;
         public List<string>? endpoints { get; set; } = null;
         public string basePathLocal { get; set; } = "www";        
         public string basePathEmbedded { get; set; } = "Html";
         public bool allowCrossOrigin { get; set; } = false;
-        public bool running { get; set; } = false;      
+        public bool isRunning { get; set; } = false;      
         public bool tryServeFirstLocal { get; set; } = false;
-
-        public event EventHandler<ServerEvent>? ChangeOccurred;
+        public CancellationTokenSource? cToken { get; set; } = null;
+        public event EventHandler<LightHTTPServerEvent>? ChangeOccurred;
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
         #region Constructor / Settings / Initialization Tasks
 
-        /// <summary>Class constructor.</summary>
+        /// <summary>
+        /// Creates a Light HTTP Server
+        /// </summary>
         /// <param name="port">HTTP Server Port (Default: 8080)</param>
         /// <param name="maxConnections">Max Number of Connections</param>
         /// <param name="basePathEmbedded">The base path to find the embedded resource files (Note: Relative to root folder of project).</param>
         /// <param name="basePathLocal">The base path to find the local files (Note: Relative to Application directory).</param>
         /// <param name="allowCrossOrigin">Allow Cross Origin (CORS)</param>
-        public LightHTTPServer(int port = 8080, int maxConnections = 10, string basePathEmbedded = "Html", string basePathLocal = "www", bool allowCrossOrigin = false)
+        /// <param name="autostart">Start sever on creation</param>
+        public LightHTTPServer(int port = 8080, int maxConnections = 10, string basePathEmbedded = "Html", string basePathLocal = "www", bool allowCrossOrigin = false, bool autostart = false)
         {
             this.port = port;
             this.maxConnections = maxConnections;
@@ -64,9 +58,13 @@ namespace glitcher.core.Servers
             this.basePathLocal = basePathLocal;
             this.allowCrossOrigin = allowCrossOrigin;
             Logger.Add(LogLevel.OnlyDebug, "HTTP Server", $"Server created. Port: <{port}> | Max Connections: <{maxConnections}> | Base Path Embeded: <{basePathEmbedded}> | Base Path Local: <{basePathLocal}> | Allow CrossOrigin: <{allowCrossOrigin}>.");
+            if (autostart)
+                this.Start();
         }
 
-        /// <summary>Update settings of HTTP Server</summary>
+        /// <summary>
+        /// Update settings of HTTP Server
+        /// </summary>
         /// <param name="port">HTTP Server Port (Default: 8080)</param>
         /// <param name="maxConnections">Max Number of Connections</param>
         /// <param name="basePathLocal">The base path to find the local files (Note: Relative to Application directory).</param>
@@ -89,29 +87,29 @@ namespace glitcher.core.Servers
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+        #region Start / Stop
 
-        #region Methods: Start / Stop
-
-        /// <summary>Start the HTTP Server.</summary>
-        /// <returns>(void)</returns>
+        /// <summary>
+        /// Start the HTTP Server.
+        /// </summary>
+        /// <returns>(void *async)</returns>
         public async Task Start()
         {
             // If running cancel start and return.
-            if (this.running)
+            if (this.isRunning)
             {
                 Logger.Add(LogLevel.Info, "HTTP Server", $"Server already running.");
                 return;
             }
 
             // Check admin rights to check if is possible to use all endpoints or only local
-            if (!AdminRights.IsRunAsAdmin())
+            if (!Utils.IsRunAsAdmin())
             {
                 DialogResult dialogResult = MessageBox.Show($"Application needs admin rights to listen all domains ports. " +
                     "Do you want to restart application with admin privilages?", "Administrator Privilages", MessageBoxButtons.YesNo);
                 if (dialogResult == DialogResult.Yes)
                 {
-                    AdminRights.RestartAsAdmin();
+                    Utils.RestartAsAdmin();
                     return;
                 }
                 else if (dialogResult == DialogResult.No)
@@ -177,9 +175,11 @@ namespace glitcher.core.Servers
             requests.Clear();
         }
 
-        /// <summary>Handle HTTP Request.</summary>
+        /// <summary>
+        /// Handle HTTP Request.
+        /// </summary>
         /// <param name="context">HTTP Context</param>
-        /// <returns>(void)</returns>
+        /// <returns>(void *async)</returns>
         public async Task RequestContextAsync(HttpListenerContext context)
         {
             // Peel out the requests and response objects
@@ -270,11 +270,13 @@ namespace glitcher.core.Servers
             response.Close();
         }
 
-        /// <summary>Stop the HTTP Server.</summary>
-        /// <returns>(void)</returns>
-        public async void Stop()
+        /// <summary>
+        /// Stop the HTTP Server.
+        /// </summary>
+        /// <returns>(void *async)</returns>
+        public void Stop()
         {
-            if (!this.running || _httpServerListener == null)
+            if (!this.isRunning || _httpServerListener == null)
             {
                 Logger.Add(LogLevel.Info, "HTTP Server", $"Server not running.");
                 return;
@@ -297,11 +299,10 @@ namespace glitcher.core.Servers
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+        #region Add Routes for Custom Responses (API Calls)
 
-        #region Methods: Add Routes of Custom Responses (API Calls)
-
-        /// <summary>Add a Route, defining an action to be triggered on request.<br/>
+        /// <summary>
+        /// Add a Route, defining an action to be triggered on request.<br/>
         /// <example>
         /// Example:<br/>
         /// **Defining Route**<br/>
@@ -311,33 +312,34 @@ namespace glitcher.core.Servers
         /// </example>
         /// </summary>
         /// <param name="path">Requested Path</param>
-        /// <param name="callback">Function name to be called. (Note: Function should have *NameValueCollection* as input variables. Returh should be of type string.)</param>
+        /// <param name="callback">Function name to be called. (Note: Function should have *NameValueCollection* as input variable (requestParams). Return should be of type string.)</param>
         /// <param name="mimeType">Custom Mime Type (Default: text/html)</param>
         /// <returns>(void)</returns>
         public void AddRoute(string path, Func<NameValueCollection, string>? callback = null, string mimeType = "text/html")
         {
-            Route<string> response;
+            LightHTTPServerRoute<string> response;
             response.callback = callback;
             response.mimeType = mimeType;
             _RoutesList.Add(path, response);
         }
 
-        /// <summary>Add a Route, defining an (async) action to be triggered on request.<br/>
+        /// <summary>
+        /// Add a Route, defining an (async) action to be triggered on request.<br/>
         /// <example>
         /// Example:<br/>
         /// **Defining Route**<br/>
-        /// AddRoute("/custom/path", AsyncFunctionToExecute);<br/><br/>
+        /// AddRouteAsync("/custom/path", AsyncFunctionToExecute);<br/><br/>
         /// **Defining Function**<br/>
         /// public Task&lt;string&gt; AsyncFunctionToExecute(NameValueCollection requestParams)<br/>{<br/>return requestParams.ToString();<br/>}
         /// </example>
         /// </summary>
         /// <param name="path">Requested Path</param>
-        /// <param name="callback">Function name to be called. (Note: Async Function should have *NameValueCollection* as input variables. Returh should be of type string.)</param>
+        /// <param name="callback">Function name to be called. (Note: Async Function should have *NameValueCollection* as input variable (requestParams). Return should be of type string.)</param>
         /// <param name="mimeType">Custom Mime Type (Default: text/html)</param>
         /// <returns>(void)</returns>
         public void AddRouteAsync(string path, Func<NameValueCollection, Task<string>>? callback = null, string mimeType = "text/html")
         {
-            Route<Task<string>> response;
+            LightHTTPServerRoute<Task<string>> response;
             response.callback = callback;
             response.mimeType = mimeType;
             _RoutesListAsync.Add(path, response);
@@ -345,24 +347,22 @@ namespace glitcher.core.Servers
 
         #endregion
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
         #region Notifiers / Event Handlers
 
-        /// <summary>Notify a change on HTTP Server.</summary>
+        /// <summary>
+        /// Notify a change on HTTP Server.
+        /// </summary>
         /// <returns>(void)</returns>
         private void NotifyChange(string eventType)
         {
-            this.running = (_httpServerListener != null) ? _httpServerListener.IsListening : false;
+            this.isRunning = (_httpServerListener != null) ? _httpServerListener.IsListening : false;
             if (ChangeOccurred != null)
             {
-                ChangeOccurred.Invoke(this, new ServerEvent(eventType));
+                ChangeOccurred.Invoke(this, new LightHTTPServerEvent(eventType));
             }
         }
 
         #endregion
-
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
     }
 }

@@ -1,8 +1,7 @@
 using glitcher.core;
-using glitcher.core.Servers;
-using glitcher.core.Utils;
+using Servers = glitcher.core.Servers;
 
-namespace HTTPServer
+namespace LightHTTPServerTester
 {
     /// <summary>
     /// **Ligth HTTP Server Tester**
@@ -14,12 +13,12 @@ namespace HTTPServer
     /// </remarks>
     public partial class Main : Form
     {
-        private LightHTTPServer? _httpServer = null;
+        private Servers.LightHTTPServer? _httpServer = null;
 
         public Main()
         {
             InitializeComponent();
-            _httpServer = new LightHTTPServer();
+            _httpServer = new Servers.LightHTTPServer();
         }
 
         private void btn_ShowLogger_Click(object sender, EventArgs e)
@@ -65,13 +64,13 @@ namespace HTTPServer
             {
                 if (_httpServer.endpoints != null)
                     if (_httpServer.endpoints.Count > 0)
-                        SystemUtils.OpenWebBrowser(_httpServer.endpoints[0]);
+                        Utils.OpenWebBrowser(_httpServer.endpoints[0]);
             }
         }
 
         private void btn_OpenAppDir_Click(object sender, EventArgs e)
         {
-            SystemUtils.OpenAppFolder();
+            Utils.OpenAppFolder();
         }
     }
 }

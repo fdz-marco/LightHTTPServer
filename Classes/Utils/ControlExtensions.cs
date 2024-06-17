@@ -1,18 +1,15 @@
-﻿namespace glitcher.core.Utils
+﻿namespace glitcher.core
 {
-
     /// <summary>
-    /// **Controls - Extension Methods**
+    /// (Class: Static~Global) **Controls - Extension Methods**<br/>
     /// Add the posibility to update controls in the UI from different threads/async tasks in a safe way.
     /// </summary>
     /// <remarks>
     /// Author: Marco Fernandez (marcofdz.com / glitcher.dev)<br/>
-    /// Last modified: 2024.06.16 - June 16, 2024
+    /// Last modified: 2024.06.17 - June 17, 2024
     /// </remarks>
     public static class ControlExtensions
     {
-
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
         /// <summary>
         /// Update a property of Control in a SafeThread way.<br/>
@@ -61,8 +58,6 @@
             }
         }
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
         /// <summary>
         /// Call a method (without arguments) of Control in a SafeThread way.<br/>
         /// <example>Example:<br/>
@@ -109,8 +104,6 @@
                 //return Task.Run(() => methodAction(control));
             }
         }
-
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
         /// <summary>
         /// Call a method (with arguments) of Control in a SafeThread way.<br/>
@@ -161,9 +154,9 @@
             }
         }
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
-        /// <summary>Invoke Async (Asynchronous).</summary>
+        /// <summary>
+        /// Invoke Async (Asynchronous).
+        /// </summary>
         /// <param name="control">Reference to Control.</param>
         /// <param name="methodAction">Function to execute on asynchronious Invoke.</param>
         public static async Task InvokeAsync(this Control control, Action methodAction)
@@ -178,6 +171,5 @@
             }
         }
 
-        // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
     }
 }

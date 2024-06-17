@@ -1,4 +1,4 @@
-namespace HTTPServer
+namespace LightHTTPServerTester
 {
     internal static class Program
     {
