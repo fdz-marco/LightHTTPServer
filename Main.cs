@@ -9,7 +9,7 @@ namespace LightHTTPServerTester
     /// </summary>
     /// <remarks>
     /// Author: Marco Fernandez (marcofdz.com / glitcher.dev)<br/>
-    /// Last modified: 2024.06.16 - June 16, 2024
+    /// Last modified: 2024.09.16 - September 16, 2024
     /// </remarks>
     public partial class Main : Form
     {
@@ -34,9 +34,9 @@ namespace LightHTTPServerTester
                 int.TryParse(txt_MaxConnections.Text.Trim(), out int maxConnections);
                 string basePathLocal = txt_BasePathLocal.Text.Trim();
                 bool allowCORS = chk_AllowCORS.Checked;
-                bool tryServeFirstLocal = chk_ServeFirstLocal.Checked;
+                bool serveFirstLocal = chk_ServeFirstLocal.Checked;
                 bool restartOnUpdate = chk_RestartOnUpdate.Checked;
-                _httpServer.tryServeFirstLocal = tryServeFirstLocal;
+                _httpServer.ServeFirstLocal = serveFirstLocal;
                 _httpServer.Update(port, maxConnections, basePathLocal, allowCORS, restartOnUpdate);
             }
         }

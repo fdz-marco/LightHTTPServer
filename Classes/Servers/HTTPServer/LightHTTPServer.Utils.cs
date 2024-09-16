@@ -2,6 +2,7 @@
 using System.Text;
 using System.Reflection;
 using System.Collections.Specialized;
+using System.IO;
 
 namespace glitcher.core.Servers
 {
@@ -79,7 +80,7 @@ namespace glitcher.core.Servers
 
             // Return Requested FilePath (No Change)
             string filePath = Path.Combine(appPath, basePathLocal, requestedPath.TrimStart('/'));
-            if (File.Exists(filePath)) 
+            if (File.Exists(filePath))
             {
                 Logger.Add(LogLevel.Info, "HTTP Server", $"Found on Local. Local File Path: <{filePath}>", requestUID);
                 return filePath;
@@ -87,38 +88,6 @@ namespace glitcher.core.Servers
 
             // Return Requested FilePath (Not Found)
             Logger.Add(LogLevel.Warning, "HTTP Server", $"Not Found on Local. Request Path: <{requestedPath}>", requestUID);
-            return null;
-        }
-
-        /// <summary>
-        /// Get a Embedded File Path from Requested Path (Note: Relative to root folder of project).
-        /// </summary>
-        /// <param name="requestedPath">Requested Path.</param>
-        /// <param name="basePathEmbedded">The base path to find the embedded resource file (Note: Relative to root folder of project).</param>
-        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
-        /// <returns>(string) Embedded File Path</returns>
-        protected string? GetEmbeddedFilePath(string requestedPath, string basePathEmbedded, string requestUID = "Unidentified")
-        {
-            // Get the assembly (Application) and all the resources on assembly
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            List<string> resourceNames = new List<string>(assembly.GetManifestResourceNames());
-
-            // Return Requested Embbeded Resource (No Change)
-            string resourceFilePath = $"{basePathEmbedded}/{requestedPath.TrimStart('/')}";
-            resourceFilePath = resourceFilePath.Replace(@"\", "/");
-            resourceFilePath = resourceFilePath.Replace(@"//", "/");
-            resourceFilePath = resourceFilePath.Replace(@"/", ".");
-            resourceFilePath = resourceNames.FirstOrDefault(r => r.EndsWith(resourceFilePath), "");
-
-            // Return Requested Embbeded Resource (Found)
-            if (!string.IsNullOrEmpty(resourceFilePath))
-            {
-                Logger.Add(LogLevel.Info, "HTTP Server", $"Found on Resources. Embedded File: <{resourceFilePath}>", requestUID);
-                return resourceFilePath;
-            }
-
-            // Return Requested Embbeded Resource (Not Found)
-            Logger.Add(LogLevel.Warning, "HTTP Server", $"Not Found on Resources. Request Path: <{requestedPath}>", requestUID);
             return null;
         }
 
@@ -142,7 +111,7 @@ namespace glitcher.core.Servers
             foreach (string indexFile in defaultFiles)
             {
                 string? filePath = GetLocalFilePath(indexFile, basePathLocal, requestUID);
-                if (!String.IsNullOrEmpty(filePath)) 
+                if (!String.IsNullOrEmpty(filePath))
                 {
                     Logger.Add(LogLevel.Info, "HTTP Server", $"Found Default. Local File Path: <{filePath}>", requestUID);
                     return filePath;
@@ -155,13 +124,40 @@ namespace glitcher.core.Servers
         }
 
         /// <summary>
+        /// Get a Embedded File Path from Requested Path (Note: Relative to root folder of project).
+        /// </summary>
+        /// <param name="requestedPath">Requested Path.</param>
+        /// <param name="basePathEmbedded">The base path to find the embedded resource file (Note: Relative to root folder of project).</param>
+        /// <param name="remoteAsm">Remote Assembly or DLL</param>
+        /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
+        /// <returns>(string) Embedded File Path</returns>
+        protected string? GetEmbeddedFilePath(string requestedPath, string basePathEmbedded, bool remoteAsm, string requestUID = "Unidentified")
+        {
+            // Return Requested Embbeded Resource 
+            string embeddedFilePath = $"{basePathEmbedded}/{requestedPath.TrimStart('/')}";
+            embeddedFilePath = Utils.GetResourcePath(embeddedFilePath, remoteAsm);
+
+            // Return Requested Embbeded Resource (Found)
+            if (!string.IsNullOrEmpty(embeddedFilePath))
+            {
+                Logger.Add(LogLevel.Info, "HTTP Server", $"Found on Resources. Embedded File: <{embeddedFilePath}>", requestUID);
+                return embeddedFilePath;
+            }
+
+            // Return Requested Embbeded Resource (Not Found)
+            Logger.Add(LogLevel.Warning, "HTTP Server", $"Not Found on Resources. Request Path: <{requestedPath}>", requestUID);
+            return null;
+        }
+
+        /// <summary>
         /// Get a Defalt Embedded File Path from Requested Path (Note: Relative to root folder of project).
         /// </summary>
         /// <param name="requestedPath">Requested Path.</param>
         /// <param name="basePathEmbedded">The base path to find the embedded resource file (Note: Relative to root folder of project).</param>
+        /// <param name="remoteAsm">Remote Assembly or DLL</param>
         /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(string) Embedded Default File Path</returns>
-        protected string? GetEmbeddedDefaultFilePath(string requestedPath, string basePathEmbedded, string requestUID = "Unidentified")
+        protected string? GetEmbeddedDefaultFilePath(string requestedPath, string basePathEmbedded, bool remoteAsm, string requestUID = "Unidentified")
         {
             // Clean requested path
             requestedPath = requestedPath.Replace(@"\", "/");
@@ -171,13 +167,15 @@ namespace glitcher.core.Servers
 
             // Return Default Embbeded Resource 
             string[] defaultFiles = { "index.html", "index.htm", "default.html", "default.htm", "index.php" };
+
             foreach (string indexFile in defaultFiles)
             {
-                string? resourceFilePath = GetEmbeddedFilePath(indexFile, basePathEmbedded, requestUID);
-                if (!String.IsNullOrEmpty(resourceFilePath))
+                string? embeddedFilePath = GetEmbeddedFilePath(indexFile, basePathEmbedded, remoteAsm, requestUID);
+
+                if (!String.IsNullOrEmpty(embeddedFilePath))
                 {
-                    Logger.Add(LogLevel.Info, "HTTP Server", $"Found Default. Embedded Path: <{resourceFilePath}>", requestUID);
-                    return resourceFilePath;
+                    Logger.Add(LogLevel.Info, "HTTP Server", $"Found Default. Embedded Path: <{embeddedFilePath}>", requestUID);
+                    return embeddedFilePath;
                 }
             }
 
@@ -227,15 +225,17 @@ namespace glitcher.core.Servers
         /// </summary>
         /// <param name="response">HTTP Response</param>
         /// <param name="embeddedFilePath">Embedded File Path (Note: Relative to root folder of project)</param>
+        /// <param name="remoteAsm">Remote Assembly or DLL</param>
         /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(bool *async) True if is served correctly.</returns>
-        protected async Task<bool> ServeReponseEmbeddedFile(HttpListenerResponse response, string embeddedFilePath, string requestUID = "Unidentified")
+        protected async Task<bool> ServeReponseEmbeddedFile(HttpListenerResponse response, string embeddedFilePath, bool remoteAsm, string requestUID = "Unidentified")
         {
             try
             {
                 Logger.Add(LogLevel.Info, "HTTP Server", $"Serving Embedded File: {embeddedFilePath}.", requestUID);
-                // Get the assembly (Application) and resoure file
-                Assembly assembly = Assembly.GetExecutingAssembly();
+                // Get Assembly
+                Assembly assembly = Utils.GetAssembly(remoteAsm);
+                // Get Resource file
                 Stream? embeddedFile = assembly.GetManifestResourceStream(embeddedFilePath);
                 byte[] filesBytes = new byte[embeddedFile.Length];
                 MemoryStream memoryStream = new MemoryStream();
@@ -325,19 +325,20 @@ namespace glitcher.core.Servers
         /// </summary>
         /// <param name="requestedPath">Requested Path</param>
         /// <param name="basePathEmbedded">The base path to find the embedded resource file (Note: Relative to root folder of project).</param>
+        /// <param name="remoteAsm">Remote Assembly or DLL</param>
         /// <param name="response">HTTP Response</param>
         /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(bool *async) True if is served correctly.</returns>
-        protected async Task<bool> GetPathAndServeEmbeddedFile(string requestedPath, string basePathEmbedded, HttpListenerResponse response, string requestUID = "Unidentified")
+        protected async Task<bool> GetPathAndServeEmbeddedFile(string requestedPath, string basePathEmbedded, bool remoteAsm, HttpListenerResponse response, string requestUID = "Unidentified")
         {
             bool served = false;
 
             // Search embedded file 
-            string? embeddedFilePath = GetEmbeddedFilePath(requestedPath, basePathEmbedded, requestUID);
+            string? embeddedFilePath = GetEmbeddedFilePath(requestedPath, basePathEmbedded, remoteAsm, requestUID);
 
             // Try to serve embedded file 
             if (!String.IsNullOrEmpty(embeddedFilePath))
-                served = await ServeReponseEmbeddedFile(response, embeddedFilePath, requestUID);
+                served = await ServeReponseEmbeddedFile(response, embeddedFilePath, remoteAsm, requestUID);
 
             // Return 
             return served;
@@ -352,21 +353,22 @@ namespace glitcher.core.Servers
         /// </summary>
         /// <param name="requestedPath">Requested Path</param>
         /// <param name="basePathEmbedded">The base path to find the embedded resource file (Note: Relative to root folder of project).</param>
+        /// <param name="fromCaller">Resource should be from Caller Assembly</param>
         /// <param name="basePathLocal">The base path to find the local file (Note: Relative to Application directory).</param>/// 
         /// <param name="response">HTTP Response</param>
         /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(bool *async) True if is served correctly.</returns>
-        protected async Task<bool> ServeReponseErrorNotFound(string requestedPath, string basePathEmbedded, string basePathLocal, HttpListenerResponse response, string requestUID = "Unidentified")
+        protected async Task<bool> ServeReponseErrorNotFound(string requestedPath, string basePathEmbedded, bool fromCaller, string basePathLocal, HttpListenerResponse response, string requestUID = "Unidentified")
         {
             try
             {
                 // Try to serve embedded file 
-                bool serveEmbedded = await GetPathAndServeEmbeddedFile("/error_404.html", basePathEmbedded, response, requestUID);
+                bool serveEmbedded = await GetPathAndServeEmbeddedFile("/error_404.html", basePathEmbedded, fromCaller, response, requestUID);
                 if (serveEmbedded)
                     return true;
                 // Try to serve local file 
                 bool serveLocal = await GetPathAndServeLocalFile("/error_404.html", basePathLocal, response, requestUID);
-                if (serveLocal) 
+                if (serveLocal)
                     return true;
                 // Serve plain text
                 response.StatusCode = (int)HttpStatusCode.NotFound;
@@ -390,16 +392,17 @@ namespace glitcher.core.Servers
         /// </summary>
         /// <param name="requestedPath">Requested Path</param>
         /// <param name="basePathEmbedded">The base path to find the embedded resource file (Note: Relative to root folder of project).</param>
+        /// <param name="fromCaller">Resource should be from Caller Assembly</param>
         /// <param name="basePathLocal">The base path to find the local file (Note: Relative to Application directory).</param>/// 
         /// <param name="response">HTTP Response</param>
         /// <param name="requestUID">Parameter requestUID is used for logging purposes to identify all tasks triggered by same request.</param>
         /// <returns>(bool *async) True if is served correctly.</returns>
-        protected async Task<bool> ServeReponseErrorServer(string requestedPath, string basePathEmbedded, string basePathLocal, HttpListenerResponse response, string requestUID = "Unidentified")
+        protected async Task<bool> ServeReponseErrorServer(string requestedPath, string basePathEmbedded, bool fromCaller, string basePathLocal, HttpListenerResponse response, string requestUID = "Unidentified")
         {
             try
             {
                 // Try to serve embedded file 
-                bool serveEmbedded = await GetPathAndServeEmbeddedFile("/error_500.html", basePathEmbedded, response, requestUID);
+                bool serveEmbedded = await GetPathAndServeEmbeddedFile("/error_500.html", basePathEmbedded, fromCaller, response, requestUID);
                 if (serveEmbedded)
                     return true;
                 // Try to serve local file 

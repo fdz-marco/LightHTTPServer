@@ -8,7 +8,7 @@
     /// Author: Marco Fernandez (marcofdz.com / glitcher.dev)<br/>
     /// Last modified: 2024.06.17 - June 17, 2024
     /// </remarks>
-    public static class ControlExtensions
+    public static partial class ControlExtensions
     {
 
         /// <summary>

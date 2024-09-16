@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Collections.Specialized;
+using System.Reflection;
 
 namespace glitcher.core.Servers
 {
@@ -14,7 +15,7 @@ namespace glitcher.core.Servers
     /// </summary>
     /// <remarks>
     /// Author: Marco Fernandez (marcofdz.com / glitcher.dev)<br/>
-    /// Last modified: 2024.06.17 - June 17, 2024
+    /// Last modified: 2024.07.04 - July 04, 2024
     /// </remarks>
     public class LightHTTPServer : LightHTTPServerUtils
     {
@@ -22,18 +23,18 @@ namespace glitcher.core.Servers
         #region Properties
 
         private HttpListener? _httpServerListener = null;
+        private HashSet<Task> _requestThreads = null;
         private Dictionary<string, LightHTTPServerRoute<string>> _RoutesList = new Dictionary<string, LightHTTPServerRoute<string>>();
         private Dictionary<string, LightHTTPServerRoute<Task<string>>> _RoutesListAsync = new Dictionary<string, LightHTTPServerRoute<Task<string>>>();
-        private List<string>? _endpoints { get => new List<string>(Utils.GetAllLocalIPv4().Select(x => $"http://{x}:{this.port}/")); }
 
         public int port { get; set; } = 8080;
         public int maxConnections { get; set; } = 10;
         public List<string>? endpoints { get; set; } = null;
-        public string basePathLocal { get; set; } = "www";        
+        public string basePathLocal { get; set; } = "www";
         public string basePathEmbedded { get; set; } = "Html";
         public bool allowCrossOrigin { get; set; } = false;
-        public bool isRunning { get; set; } = false;      
-        public bool tryServeFirstLocal { get; set; } = false;
+        public bool isRunning { get; set; } = false;
+        public bool ServeFirstLocal { get; set; } = false;
         public CancellationTokenSource? cToken { get; set; } = null;
         public event EventHandler<LightHTTPServerEvent>? ChangeOccurred;
 
@@ -102,33 +103,8 @@ namespace glitcher.core.Servers
                 return;
             }
 
-            // Check admin rights to check if is possible to use all endpoints or only local
-            if (!Utils.IsRunAsAdmin())
-            {
-                DialogResult dialogResult = MessageBox.Show($"Application needs admin rights to listen all domains ports. " +
-                    "Do you want to restart application with admin privilages?", "Administrator Privilages", MessageBoxButtons.YesNo);
-                if (dialogResult == DialogResult.Yes)
-                {
-                    Utils.RestartAsAdmin();
-                    return;
-                }
-                else if (dialogResult == DialogResult.No)
-                {
-                    MessageBox.Show("Only local domains ports will be used.", "Administrator Privilages");
-                    this.endpoints = new List<string>() { $"http://localhost:{this.port}/", $"http://127.0.0.1:{this.port}/" };
-                }
-            }
-            else
-            {
-                this.endpoints = _endpoints;
-            }
-
-            // Verify End Points
-            if (this.endpoints == null)
-            {
-                this.endpoints = new List<string>() { $"http://localhost:{this.port}/", $"http://127.0.0.1:{this.port}/" };
-                Logger.Add(LogLevel.Warning, "HTTP Server", $"End Points List empty. Local Domain will be used.");
-            }
+            // Get End Points
+            this.endpoints = Utils.GetEndPointsWithPort(this.port, true, false, false, true);
 
             // Force the use of cancellation Token
             if (this.cToken == null)
@@ -148,31 +124,55 @@ namespace glitcher.core.Servers
             NotifyChange("started");
 
             // Manage multiple requests tasks (threads)
-            var requests = new HashSet<Task>();
-            for (int i = 0; i < this.maxConnections; i++)
-                requests.Add(_httpServerListener.GetContextAsync());
+            _requestThreads = new HashSet<Task>();
+            _requestThreads.Clear();
+            for (int i = 0; i < this.maxConnections + 1; i++)
+                _requestThreads.Add(_httpServerListener.GetContextAsync());
 
             // Handle Requests (Continous Loop)
-            while (!this.cToken.Token.IsCancellationRequested)
+            while (!this.cToken.IsCancellationRequested)
             {
-                // Listen any of the request and remove an available task (thread) if hear something
-                Logger.Add(LogLevel.Info, "HTTP Server", $"Available connections: <{requests.Count}>.");
-                Task requestTask = await Task.WhenAny(requests);
-                requests.Remove(requestTask);
+                NotifyChange("running");
+
+                // Listen for requests in all the threads and remove that thread from threads available
+                Task _singleRequestThread = await Task.WhenAny(_requestThreads);
+                _requestThreads.Remove(_singleRequestThread);
+
+                // Limit of Max Connections is reached, reject connection and add again a request thread
+                if (_requestThreads.Count == 0)
+                {
+                    Logger.Add(LogLevel.Fatal, "HTTP Server", "No HTTP Server Threads available.");
+                    // Add again a request thread after deny response
+                    _requestThreads.Add(_httpServerListener.GetContextAsync());
+                    continue;
+                }
 
                 // Process request
-                if (requestTask is Task<HttpListenerContext>)
+                if (_singleRequestThread is Task<HttpListenerContext>)
                 {
-                    // Get Task Result (shuold be HTTP Listener Context) and process it
-                    HttpListenerContext context = (requestTask as Task<HttpListenerContext>).Result;                    
-                    await RequestContextAsync(context);
-                    // Add again a request thread after serve response
-                    requests.Add(_httpServerListener.GetContextAsync());
+                    _ = Task.Run(async () => {
+                        // Get Task Result (shuold be HTTP Listener Context) and process it
+                        HttpListenerContext context = (_singleRequestThread as Task<HttpListenerContext>).Result;
+                        if (context != null)
+                            await RequestContextAsync(context);
+                        // Add again a request thread after serve response
+                        _requestThreads.Add(_httpServerListener.GetContextAsync());
+                        Logger.Add(LogLevel.Info, "HTTP Server", $"Content served. Threads Remaining: ({_requestThreads.Count - 1}).");
+                    }, this.cToken.Token);
+                }
+                else
+                {
+                    // Add again a request thread 
+                    _requestThreads.Add(_httpServerListener.GetContextAsync());
+                    Logger.Add(LogLevel.Fatal, "HTTP Server", $"HTTP Context not found.");
                 }
             }
 
             // On Cancellation
-            requests.Clear();
+            _requestThreads.Clear();
+
+            // Dispose Token
+            this.cToken = null;
         }
 
         /// <summary>
@@ -197,6 +197,7 @@ namespace glitcher.core.Servers
             Logger.Add(LogLevel.OnlyDebug, "HTTP Server", $"HttpMethod:<{request.HttpMethod}>", requestUID);
             Logger.Add(LogLevel.OnlyDebug, "HTTP Server", $"UserHostName: <{request.UserHostName}>", requestUID);
             Logger.Add(LogLevel.OnlyDebug, "HTTP Server", $"UserAgent: <{request.UserAgent}>", requestUID);
+            Logger.Add(LogLevel.OnlyDebug, "HTTP Server", $"Operative System: <{Utils.GetOSFromUserAgent(request.UserAgent)}>", requestUID);
             Logger.Add(LogLevel.OnlyDebug, "HTTP Server", $"AbsolutePath: <{request.Url.AbsolutePath}>", requestUID);
             Logger.Add(LogLevel.OnlyDebug, "HTTP Server", $"LocalPath: <{request.Url.LocalPath}>", requestUID);
             Logger.Add(LogLevel.OnlyDebug, "HTTP Server", $"AbsoluteUri: <{request.Url.AbsoluteUri}>", requestUID);
@@ -226,7 +227,7 @@ namespace glitcher.core.Servers
                 Func<NameValueCollection, Task<string>> callback = _RoutesListAsync[requestedPath].callback;
                 string mimeType = _RoutesListAsync[requestedPath].mimeType;
                 string content = await callback(requestedParams);
-                served = await ServeResponseCustomContent(response, requestedPath,content, mimeType, requestUID);
+                served = await ServeResponseCustomContent(response, requestedPath, content, mimeType, requestUID);
             }
             // Response: File on Embedded Resources (or) Response: File on App Folder
             else
@@ -236,19 +237,28 @@ namespace glitcher.core.Servers
                 if (String.IsNullOrEmpty(localFilePath))
                     localFilePath = (!requestedPath.Contains('.')) ? GetLocalDefaultFilePath(requestedPath, this.basePathLocal, requestUID) : null;
 
-                // Get Embeded File or Default Embedded
-                string? embeddedFilePath = GetEmbeddedFilePath(requestedPath, this.basePathEmbedded, requestUID);
+                // Get Embeded File or Default Embedded (ON CALLER APP)
+                string? embeddedFilePath = GetEmbeddedFilePath(requestedPath, this.basePathEmbedded, true, requestUID);
                 if (String.IsNullOrEmpty(embeddedFilePath))
-                    embeddedFilePath = (!requestedPath.Contains('.')) ? GetEmbeddedDefaultFilePath(requestedPath, this.basePathEmbedded, requestUID) : null;
+                    embeddedFilePath = (!requestedPath.Contains('.')) ? GetEmbeddedDefaultFilePath(requestedPath, this.basePathEmbedded, true, requestUID) : null;
 
-                // Serve: Local File (If priority first) > Embedded Resource > Local File
-                if (tryServeFirstLocal && !String.IsNullOrEmpty(localFilePath))
+                // Get Embeded File or Default Embedded (ON LIBRARY)
+                string? embeddedFilePathLib = GetEmbeddedFilePath(requestedPath, this.basePathEmbedded, false, requestUID);
+                if (String.IsNullOrEmpty(embeddedFilePathLib))
+                    embeddedFilePathLib = (!requestedPath.Contains('.')) ? GetEmbeddedDefaultFilePath(requestedPath, this.basePathEmbedded, false, requestUID) : null;
+
+                // Serve: Local File (If priority first) > Embedded Resource(App) > Embedded Resource(Library) > Local File
+                if (ServeFirstLocal && !String.IsNullOrEmpty(localFilePath)) // Local File
                 {
                     served = await ServeResponseLocalFile(response, localFilePath, requestUID);
                 }
-                else if (!String.IsNullOrEmpty(embeddedFilePath))
+                else if (!String.IsNullOrEmpty(embeddedFilePath)) // Embeded File (ON CALLER APP)
                 {
-                    served = await ServeReponseEmbeddedFile(response, embeddedFilePath, requestUID);
+                    served = await ServeReponseEmbeddedFile(response, embeddedFilePath, true, requestUID);
+                }
+                else if (!String.IsNullOrEmpty(embeddedFilePathLib)) // Embeded File (ON LIBRARY)
+                {
+                    served = await ServeReponseEmbeddedFile(response, embeddedFilePathLib, false, requestUID);
                 }
                 else
                 {
@@ -259,12 +269,16 @@ namespace glitcher.core.Servers
             // If Not Served (Not Found)
             if (!served)
             {
-                served = await ServeReponseErrorNotFound(requestedPath, this.basePathEmbedded, this.basePathLocal, response, requestUID);
+                served = await ServeReponseErrorNotFound(requestedPath, this.basePathEmbedded, true, this.basePathLocal, response, requestUID);
+                if (!served) // (ON LIBRARY)
+                    served = await ServeReponseErrorNotFound(requestedPath, this.basePathEmbedded, false, this.basePathLocal, response, requestUID);
             }
             // If Not Served (Server Error)
             if (!served)
             {
-                served = await ServeReponseErrorServer(requestedPath, this.basePathEmbedded, this.basePathLocal, response, requestUID);
+                served = await ServeReponseErrorServer(requestedPath, this.basePathEmbedded, true, this.basePathLocal, response, requestUID);
+                if (!served) // (ON LIBRARY)
+                    served = await ServeReponseErrorServer(requestedPath, this.basePathEmbedded, false, this.basePathLocal, response, requestUID);
             }
             // Close Response
             response.Close();
@@ -287,7 +301,7 @@ namespace glitcher.core.Servers
                     cToken.Cancel();
                 _httpServerListener?.Stop();
                 _httpServerListener?.Close();
-                cToken = null;
+                //cToken = null;
                 Logger.Add(LogLevel.Info, "HTTP Server", $"Server Stopped and Closed.");
             }
             catch (Exception ex)
@@ -320,7 +334,10 @@ namespace glitcher.core.Servers
             LightHTTPServerRoute<string> response;
             response.callback = callback;
             response.mimeType = mimeType;
-            _RoutesList.Add(path, response);
+            if (!_RoutesList.ContainsKey(path))
+                _RoutesList.Add(path, response);
+            else
+                Logger.Add(LogLevel.Warning, "HTTP Server", $"Route duplicated: <{path}>.");
         }
 
         /// <summary>
@@ -342,7 +359,10 @@ namespace glitcher.core.Servers
             LightHTTPServerRoute<Task<string>> response;
             response.callback = callback;
             response.mimeType = mimeType;
-            _RoutesListAsync.Add(path, response);
+            if (!_RoutesListAsync.ContainsKey(path))
+                _RoutesListAsync.Add(path, response);
+            else
+                Logger.Add(LogLevel.Warning, "HTTP Server", $"Route Async duplicated: <{path}>.");
         }
 
         #endregion
